@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Textbook Processing Improvements Spec",
+  "description": "Improve textbook lesson separation and Sinhala text handling",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": ""
+  }
+}

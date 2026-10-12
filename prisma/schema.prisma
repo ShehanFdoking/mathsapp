@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum Medium {
+  ENGLISH
+  SINHALA
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum QuestionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum QuestionType {
+  MCQ         // quiz questions — 4 options, one correct answerIndex
+  STRUCTURED  // paper/exam questions — open-ended, marked against a model answer
+}
+
+// credits used for GPA-style average: EASY=2, MEDIUM=3, HARD=4
+// (kept as a helper mapping in lib/grading.ts, not stored redundantly here)
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  age       Int
+  grade     Int // 6-11
+  medium    Medium
+  school    String
+  phone     String?  @unique
+  email     String?  @unique
+  password  String
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+
+  papers       Paper[]
+  quizzes      Quiz[]
+  quizAttempts QuizAttempt[]
+  chatSessions ChatMessage[]
+}
+
+model Textbook {
+  id        String   @id @default(cuid())
+  grade     Int
+  medium    Medium
+  part      Int // 1, 2, 3 ... for textbooks split into multiple parts
+  fileUrl   String
+  pageCount Int
+  uploadedAt DateTime @default(now())
+
+  lessons Lesson[]
+
+  @@unique([grade, medium, part])
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  grade       Int
+  medium      Medium
+  title       String
+  order       Int
+  textbookId  String
+  textbook    Textbook @relation(fields: [textbookId], references: [id])
+  startPage   Int // page within the specific textbook part
+  endPage     Int
+  rawText     String?  @db.Text // extracted textbook text for this lesson
+  smartNote   String?  @db.Text // AI-generated understandable note w/ textbook examples
+  notePdfKey  String?  @db.Text // S3 key of pre-generated PDF with Sinhala support and watermark
+  createdAt   DateTime @default(now())
+
+  questions Question[]
+
+  @@index([grade, medium])
+}
+
+// The reviewed question bank. AI (Gemini) generates these as PENDING;
+// only questions an admin marks APPROVED are ever eligible to be drawn
+// into a student's paper or quiz.
+model Question {
+  id          String         @id @default(cuid())
+  lessonId    String
+  lesson      Lesson         @relation(fields: [lessonId], references: [id])
+  grade       Int
+  medium      Medium
+  difficulty  Difficulty
+  type        QuestionType   @default(MCQ)
+  question    String         @db.Text
+  options     Json? // [string, string, string, string] — MCQ only, null for STRUCTURED
+  answerIndex Int? // 0-3 — MCQ only, null for STRUCTURED
+  modelAnswer String?        @db.Text // full worked solution / marking scheme — STRUCTURED only
+  explanation String?        @db.Text // step-by-step explanation of the answer — MCQ only
+  hint        String?        @db.Text // a nudge shown to students who are stuck, without giving the answer away
+  marks       Int            @default(1)
+  status      QuestionStatus @default(PENDING)
+  diagramUrl  String?        @db.Text // base64 data URL or cloud storage URL for attached diagram/image
+  createdAt   DateTime       @default(now())
+  reviewedAt  DateTime?
+
+  @@index([lessonId, difficulty, status, type])
+}
+
+model Paper {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  lessonIds   String[]
+  questionIds String[] // Question ids drawn from the approved bank
+  difficulty  Difficulty
+  durationMin Int
+  fileUrl     String
+  createdAt   DateTime   @default(now())
+}
+
+model Quiz {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  lessonIds   String[]
+  questionIds String[] // Question ids drawn from the approved bank, in the order presented
+  difficulty  Difficulty
+  durationMin Int
+  createdAt   DateTime   @default(now())
+
+  attempts QuizAttempt[]
+}
+
+model QuizAttempt {
+  id         String   @id @default(cuid())
+  quizId     String
+  quiz       Quiz     @relation(fields: [quizId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  answers    Json // [selectedIndex per question]
+  score      Int // correct out of 10
+  percentage Float
+  credits    Int // 2 / 3 / 4 based on difficulty
+  createdAt  DateTime @default(now())
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  lessonId  String
+  role      String // "user" | "assistant"
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, lessonId])
+}
