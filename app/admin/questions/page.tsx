@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -57,7 +57,7 @@ function cleanLatexText(text: string): string {
 
 const DIFFICULTIES = ["EASY", "MEDIUM", "HARD"];
 
-export default function QuestionsManagementPage() {
+function QuestionsManagementPageContent() {
     const searchParams = useSearchParams();
     const grade = searchParams.get("grade");
     const medium = searchParams.get("medium");
@@ -324,5 +324,18 @@ export default function QuestionsManagementPage() {
                 )}
             </div>
         </main>
+    );
+}
+
+
+export default function QuestionsManagementPage() {
+    return (
+        <Suspense fallback={
+            <main className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+                <p className="text-gray-600">Loading...</p>
+            </main>
+        }>
+            <QuestionsManagementPageContent />
+        </Suspense>
     );
 }

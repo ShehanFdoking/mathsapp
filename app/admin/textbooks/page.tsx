@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import AdminNav from "@/components/AdminNav";
 
+export const dynamic = 'force-dynamic';
+
 const GRADES = [6, 7, 8, 9, 10, 11];
 
 export default async function AdminTextbooksPage() {

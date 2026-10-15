@@ -3,6 +3,8 @@ import Link from "next/link";
 import AdminNav from "@/components/AdminNav";
 import { Users, BookOpen, FileText, FileQuestion, TrendingUp, ArrowRight } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminDashboard() {
   const [studentCount, textbookCount, lessonCount, questionCount] = await Promise.all([
     prisma.user.count({ where: { role: "STUDENT" } }),
