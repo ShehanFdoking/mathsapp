@@ -5,7 +5,13 @@ import AdminNav from "@/components/AdminNav";
 const GRADES = [6, 7, 8, 9, 10, 11];
 
 export default async function AdminTextbooksPage() {
-  const textbooks = await prisma.textbook.findMany();
+  const textbooks = await prisma.textbook.findMany({
+    include: {
+      _count: {
+        select: { lessons: true }
+      }
+    }
+  });
 
   function status(grade: number, medium: "ENGLISH" | "SINHALA") {
     const parts = textbooks.filter((t) => t.grade === grade && t.medium === medium);
