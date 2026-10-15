@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
 import * as fs from "fs";
 import * as path from "path";
 import { getSinhalaFont } from "./sinhala-font";
@@ -253,7 +253,7 @@ export async function generateNotePdf(params: {
           size: 40,
           font: font,
           color: rgb(0.9, 0.9, 0.9),
-          rotate: { type: 'degrees', angle: -45 },
+          rotate: degrees(-45),
           opacity: 0.3,
         });
       }
